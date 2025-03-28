@@ -1,2 +1,7 @@
-# 2025_semester_2_rproj.
-Repo for 2025 semester 2 R Project for BABS2 Report
+#Analysis of the efficacy of *Pseudomonas putida* to degrade hydrocarbons
+##**Y3948024**
+
+No bugtracker loaded
+MIT license
+
+

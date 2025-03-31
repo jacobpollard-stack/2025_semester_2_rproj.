@@ -74,7 +74,7 @@ mean_CFU_count <- ggplot() +
                 ) +
   labs(title = 'CFU count per plate by group and mean with error bars',
        x = 'Plate',
-       y = 'CFU Count',
+       y = 'CFU Count /µL',
        colour = 'Group'
        ) +
   scale_y_continuous(labels = scales::comma) +
@@ -86,7 +86,8 @@ mean_CFU_count
 ## Data for 4 x 5microL spots was only collected for group 1.
 
 # Import group 1 data.
-data_group1 <- read_excel('data/group_1_data.xlsx')
+data_group1 <- read_excel('data/group_1_data.xlsx') |> 
+  na.omit()
 
 # Summarise data.
 group1_summary <- data_group1 |> 
@@ -121,6 +122,16 @@ krus_group1
 dunn_group1 <- dunnTest(data = data_group1, cfu_count_undiluted ~ plate, method = 'bonferroni')
 dunn_group1
 
+## Grouping the plates with and without hexadecane into two categories, W and WO, respectively
+data_group1 <- data_group1 |> 
+  mutate(
+    hexadecane = ifelse(plate %in% c('30W', 
+                                '40W', 
+                                '50W', 
+                                '60W'), 
+                   "With hexadecane", "Without hexadecane")
+  )
+
 # Plotting the results of the Dunn test.
 ggstatsplot <- ggbetweenstats(
   data = data_group1,
@@ -128,31 +139,32 @@ ggstatsplot <- ggbetweenstats(
   y = 'cfu_count_undiluted', 
   type = 'nonparametric', 
   plot.title = "Dunn's Test Results",
+  colour = 'hexadecane',
   comparison.group = 'all',
-  mean.point.args = list(size = 5, color = 'blue', shape = 16) # Adjust size and color here
+  point.args = list(size = 1.5, alpha = 1),
+  centrality.point.args = list(alpha = 0)
 ) +
-  labs(title = "Dunn's Test results for Group 1 data", x = 'Plate', y = 'Mean CFU count') +
+  labs(title = "Dunn's Test results for Group 1 data", 
+       x = 'Soil moisture level /% of field capacity', 
+       y = 'Mean CFU count /µL') +
   theme(
     plot.margin = margin(10, 10, 20, 10)
   )
 
-# Overlaying linear regression onto our stats plot.
-## Grouping the plates with and without hexadecane into two categories, W and WO, respectively
-data_group1 <- data_group1 |> 
-  mutate(
-    group = ifelse(plate %in% c('30W', '40W', '50W', '60W'), 'W', 'WO')
-    )
-
-##Combining plots
-
-combined_plot <- ggstatsplot + 
+# Overlaying linear regression onto our ggstatsbetween plot.
+combined_plot <-
+  ggstatsplot + 
   geom_smooth(
     data = data_group1,
     formula = 'y ~ x',
-    aes(group = group, 
-        color = group), 
+    aes(group = hexadecane, 
+        colour = hexadecane),
     method = 'lm',
+    se = FALSE
   ) +
-  scale_color_manual(values = c('W' = 'blue', 'WO' = 'red'))
+  scale_colour_manual(values = c('With hexadecane' = 'blue', 
+                                 'Without hexadecane' = 'red')
+  ) +
+  + scale_fill_discrete(name = "New Legend Title")
+  theme_grey()
 combined_plot
-

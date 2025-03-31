@@ -38,19 +38,22 @@ iqr <- IQR(data_tidy$cfu_count_undiluted)
 n <- nrow(data_tidy)
 bin_width <- 2 * iqr / (n^(1/3))
 ### Plot residuals to visually check for normality.
-ggplot(mapping = aes(x = mod$residuals),
+histo <- ggplot(mapping = aes(x = mod$residuals),
        data = data_tidy
        ) +
   geom_histogram(binwidth = bin_width)
+histo
 ### Data appears to have a positive skew.
-shapiro.test(data_tidy$cfu_count_undiluted)
+shap <- shapiro.test(data_tidy$cfu_count_undiluted)
+shap
 ### p = 1.743e-8 < 0.05, there is evidence to suggest that the data is not normally distributed.
 ## Therefore we will perform a non-parametric test, eg. the Kruskal-Wallace test.
-kruskal.test(cfu_count_undiluted ~ plate, data = data_tidy)
+krus <- kruskal.test(cfu_count_undiluted ~ plate, data = data_tidy)
+print(krus)
 ### p = 0.7391 > 0.05 therefore there is no evidence to suggest that moisture level nor presence of hexadecane impacts growth of P. putida.
 
 # Visualise data.
-ggplot() +
+mean_CFU_count <- ggplot() +
   geom_point(data = data_tidy,
              mapping = aes(x = plate, 
                            y = cfu_count_undiluted, 
@@ -69,17 +72,20 @@ ggplot() +
                 width = 0.2, 
                 colour = 'black'
                 ) +
-  labs(title = 'CFU Count per Plate by Group and Mean with Error Bars',
+  labs(title = 'CFU count per plate by group and mean with error bars',
        x = 'Plate',
        y = 'CFU Count',
        colour = 'Group'
        ) +
   scale_y_continuous(labels = scales::comma) +
   theme_minimal()
+mean_CFU_count
 ### The standard deviations are very high for each group, suggesting that the insignificance is due largely to variation between groups.
 
 # However, as the standard deviations are very high between groups, we can perform tests on each group individually.
 ## Data for 4 x 5microL spots was only collected for group 1.
+
+# Import group 1 data.
 data_group1 <- read_excel('data/group_1_data.xlsx')
 
 # Summarise data.
@@ -90,6 +96,7 @@ group1_summary <- data_group1 |>
             n = length(cfu_count_undiluted),
             se = sd / sqrt(n)
             )
+group1_summary
 # Check for normality in group 1's data.
 # Statistical tests.
 ## Check for normality in each sheet.
@@ -99,16 +106,20 @@ iqr <- IQR(data_group1$cfu_count_undiluted)
 n <- nrow(data_group1)
 bin_width <- 2 * iqr / (n^(1/3))
 ### Plot residuals to visually check for normality.
-ggplot(mapping = aes(x = mod$residuals), data = data_group1) +
+histo_group1 <- ggplot(mapping = aes(x = mod$residuals), data = data_group1) +
   geom_histogram(binwidth = bin_width)
+histo_group1
 ### Data appears to have a positive skew.
-shapiro.test(data_tidy$cfu_count_undiluted)
+shap_group1 <- shapiro.test(data_tidy$cfu_count_undiluted)
+shap_group1
 ### p = 1.743e-8 < 0.05, there is evidence to suggest that the data is not normally distributed.
 ## Therefore we will perform a non-parametric test, eg. the Kruskal-Wallace test.
-kruskal.test(cfu_count_undiluted ~ plate, data = data_group1)
+krus_group1 <- kruskal.test(cfu_count_undiluted ~ plate, data = data_group1)
+krus_group1
 ### p = 9.638e-5 < 0.05 therefore there is evidence to suggest that, in group 1's data, moisture level and presence of hexadecane impacts growth of P. putida.
 ## We can perform a post-hoc Dunn test to determine which plates are significantly different
-dunnTest(data = data_group1, cfu_count_undiluted ~ plate, method = 'bonferroni')
+dunn_group1 <- dunnTest(data = data_group1, cfu_count_undiluted ~ plate, method = 'bonferroni')
+dunn_group1
 
 # Plotting the results of the Dunn test.
 ggstatsplot <- ggbetweenstats(
@@ -143,7 +154,5 @@ combined_plot <- ggstatsplot +
     method = 'lm',
   ) +
   scale_color_manual(values = c('W' = 'blue', 'WO' = 'red'))
-
-## Print combined plot
 combined_plot
 

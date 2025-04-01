@@ -95,7 +95,7 @@ combined_plot <- ggstatsplot +
   scale_colour_manual(values = c('With hexadecane' = 'blue', 
                                  'Without hexadecane' = 'red')
   ) +
-  labs(title = "Group 1 CFU count per µL at varying moisture levels, \n with and without hexadecane contamination", 
+  labs(title = "Group 3 CFU count per µL at varying moisture levels, \n with and without hexadecane contamination", 
        x = 'Soil moisture level /% of field capacity', 
        y = 'Mean CFU count /µL') +
   cowplot::theme_cowplot() + theme_custom

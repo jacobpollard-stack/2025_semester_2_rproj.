@@ -6,18 +6,21 @@ library(FSA)
 library(ggstatsplot)
 
 # Read in the data sheetwise and omit missing data.
-## Load the sheet names into a variable.
-sheets <- excel_sheets('data/data_tidy_sheeted.xlsx')
-## Read the sheets and compile them into one dataframe.
-data_tidy_list <- lapply(sheets, 
-                         function(sheet) {
-  data <- read_excel(path, sheet = sheet)
+library(readxl)
+
+# Read in the data sheetwise and omit missing data.
+## Define a variable as the path
+path <- 'data/data_tidy_sheeted.xlsx'
+# Load the sheet names into a variable.
+data_allgroups <- excel_sheets(path)
+# Read the sheets and compile them into one dataframe.
+data_tidy_list <- lapply(data_allgroups, function(sheet) {
+  data <- read_excel(path, sheet = sheet)  # Fix: use 'path' instead of 'data_allgroups'
   data$group <- sheet
   return(data)
 })
-## Combine all the sheets into one dataframe.
-data_tidy <- do.call(rbind, data_tidy_list) |> 
-  na.omit()
+# Combine into one dataframe
+data_tidy <- do.call(rbind, data_tidy_list)
 
 # Summarise data.
 data_summary <- data_tidy |>
@@ -178,4 +181,3 @@ combined_plot <- ggstatsplot +
        y = 'Mean CFU count /µL') +
   cowplot::theme_cowplot() + theme_custom
 combined_plot
-

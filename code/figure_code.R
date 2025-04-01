@@ -98,22 +98,23 @@ group1_summary <- data_group1 |>
             se = sd / sqrt(n)
             )
 group1_summary
+
 # Check for normality in group 1's data.
 # Statistical tests.
 ## Check for normality in each sheet.
-mod <- lm(cfu_count_undiluted ~ spot, data = data_group1)
+mod_group1 <- lm(cfu_count_undiluted ~ spot, data = data_group1)
 ### Freedman-Diaconis rule for bin width.
-iqr <- IQR(data_group1$cfu_count_undiluted)
-n <- nrow(data_group1)
-bin_width <- 2 * iqr / (n^(1/3))
+iqr_group1 <- IQR(data_group1$cfu_count_undiluted)
+n_group1 <- nrow(data_group1)
+bin_width_group1 <- 2 * iqr_group1 / (n_group1^(1/3))
 ### Plot residuals to visually check for normality.
-histo_group1 <- ggplot(mapping = aes(x = mod$residuals), data = data_group1) +
+histo_group1 <- ggplot(mapping = aes(x = mod_group1$residuals), data = data_group1) +
   geom_histogram(binwidth = bin_width)
 histo_group1
 ### Data appears to have a positive skew.
-shap_group1 <- shapiro.test(data_tidy$cfu_count_undiluted)
+shap_group1 <- shapiro.test(data_group1$cfu_count_undiluted)
 shap_group1
-### p = 1.743e-8 < 0.05, there is evidence to suggest that the data is not normally distributed.
+### p = 1.465e-8 < 0.05, there is evidence to suggest that the data is not normally distributed.
 ## Therefore we will perform a non-parametric test, eg. the Kruskal-Wallace test.
 krus_group1 <- kruskal.test(cfu_count_undiluted ~ plate, data = data_group1)
 krus_group1
@@ -122,49 +123,38 @@ krus_group1
 dunn_group1 <- dunnTest(data = data_group1, cfu_count_undiluted ~ plate, method = 'bonferroni')
 dunn_group1
 
-## Grouping the plates with and without hexadecane into two categories, W and WO, respectively
-data_group1 <- data_group1 |> 
-  mutate(
-    hexadecane = ifelse(plate %in% c('30W', 
-                                '40W', 
-                                '50W', 
-                                '60W'), 
-                   "With hexadecane", "Without hexadecane")
-  )
-
 # Plotting the results of the Dunn test.
+## Make plot one.
 ggstatsplot <- ggbetweenstats(
   data = data_group1,
   x = 'plate', 
-  y = 'cfu_count_undiluted', 
-  type = 'nonparametric', 
-  plot.title = "Dunn's Test Results",
-  colour = 'hexadecane',
+  y = 'cfu_count_undiluted',
+  type = 'nonparametric',
   comparison.group = 'all',
   point.args = list(size = 1.5, alpha = 1),
   centrality.point.args = list(alpha = 0)
-) +
+)
+ggstatsplot
+
+# Overlaying linear regression onto our ggstatsbetween plot.
+combined_plot <- ggstatsplot + 
+  geom_smooth(
+    data = data_group1,
+    formula = 'y ~ x',
+    aes(group = Contamination,
+        colour = Contamination),
+    method = 'lm',
+    se = FALSE) +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal() +
+  scale_colour_discrete(name = "Contamination") +
+  scale_colour_manual(values = c('With hexadecane' = 'blue', 
+                                 'Without hexadecane' = 'red')
+  ) +
   labs(title = "Dunn's Test results for Group 1 data", 
        x = 'Soil moisture level /% of field capacity', 
        y = 'Mean CFU count /µL') +
   theme(
     plot.margin = margin(10, 10, 20, 10)
   )
-
-# Overlaying linear regression onto our ggstatsbetween plot.
-combined_plot <-
-  ggstatsplot + 
-  geom_smooth(
-    data = data_group1,
-    formula = 'y ~ x',
-    aes(group = hexadecane, 
-        colour = hexadecane),
-    method = 'lm',
-    se = FALSE
-  ) +
-  scale_colour_manual(values = c('With hexadecane' = 'blue', 
-                                 'Without hexadecane' = 'red')
-  ) +
-  + scale_fill_discrete(name = "New Legend Title")
-  theme_grey()
 combined_plot

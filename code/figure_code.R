@@ -6,10 +6,8 @@ library(FSA)
 library(ggstatsplot)
 
 # Read in the data sheetwise and omit missing data.
-## Define the file path.
-path <- 'data/data_tidy_sheeted.xlsx'
 ## Load the sheet names into a variable.
-sheets <- excel_sheets(path)
+sheets <- excel_sheets('data/data_tidy_sheeted.xlsx')
 ## Read the sheets and compile them into one dataframe.
 data_tidy_list <- lapply(sheets, 
                          function(sheet) {
@@ -91,7 +89,7 @@ data_group1 <- read_excel('data/group_1_data.xlsx') |>
 
 # Summarise data.
 group1_summary <- data_group1 |> 
-  group_by(plate) |> 
+  group_by(Plate) |> 
   summarise(mean = mean(cfu_count_undiluted),
             sd = sd(cfu_count_undiluted),
             n = length(cfu_count_undiluted),
@@ -109,34 +107,58 @@ n_group1 <- nrow(data_group1)
 bin_width_group1 <- 2 * iqr_group1 / (n_group1^(1/3))
 ### Plot residuals to visually check for normality.
 histo_group1 <- ggplot(mapping = aes(x = mod_group1$residuals), data = data_group1) +
-  geom_histogram(binwidth = bin_width)
+  geom_histogram(binwidth = bin_width_group1)
 histo_group1
 ### Data appears to have a positive skew.
 shap_group1 <- shapiro.test(data_group1$cfu_count_undiluted)
 shap_group1
 ### p = 1.465e-8 < 0.05, there is evidence to suggest that the data is not normally distributed.
 ## Therefore we will perform a non-parametric test, eg. the Kruskal-Wallace test.
-krus_group1 <- kruskal.test(cfu_count_undiluted ~ plate, data = data_group1)
+krus_group1 <- kruskal.test(cfu_count_undiluted ~ Plate, data = data_group1)
 krus_group1
 ### p = 9.638e-5 < 0.05 therefore there is evidence to suggest that, in group 1's data, moisture level and presence of hexadecane impacts growth of P. putida.
 ## We can perform a post-hoc Dunn test to determine which plates are significantly different
-dunn_group1 <- dunnTest(data = data_group1, cfu_count_undiluted ~ plate, method = 'bonferroni')
+dunn_group1 <- dunnTest(data = data_group1, cfu_count_undiluted ~ Plate, method = 'bonferroni')
 dunn_group1
 
-# Plotting the results of the Dunn test.
-## Make plot one.
+# Plotting the results of the Dunn's test.
+## Assigning a colour for each 'contamination' value
+Contamination <- ifelse(data_group1$Contamination == 'With hexadecane', 'blue', 'red')
+## Make the ggstats plot.
 ggstatsplot <- ggbetweenstats(
   data = data_group1,
-  x = 'plate', 
+  x = 'Plate', 
   y = 'cfu_count_undiluted',
   type = 'nonparametric',
   comparison.group = 'all',
-  point.args = list(size = 1.5, alpha = 1),
-  centrality.point.args = list(alpha = 0)
+  point.args = list(size = 1.5, 
+                    alpha = 1, 
+                    colour = Contamination),
+  centrality.point.args = list(alpha = 0),
+  centrality.label.args = list(size = 3, 
+                               nudge_x = 0.5, 
+                               segment.linetype = 3,
+                               min.segment.length = 0),
+  ggsignif.args = list(textsize = 3, 
+                       tip_length = 0.01,
+                       na.rm = TRUE),
 )
 ggstatsplot
 
-# Overlaying linear regression onto our ggstatsbetween plot.
+## Designing a custom theme for the plot.
+theme_custom <- theme(
+  legend.position = 'top',
+  legend.title = element_blank(),
+    panel.grid.major.y = element_line(colour = "#e3e1e1",
+                                      linetype = 1),
+    plot.title = element_text(hjust = 0,
+                              vjust = -5),
+    plot.margin = margin(10, 10, 40, 10),
+    plot.subtitle = element_text(vjust = -260,
+                                 hjust = 1)
+)
+
+## Overlaying correlation onto our ggstatsbetween plot.
 combined_plot <- ggstatsplot + 
   geom_smooth(
     data = data_group1,
@@ -154,7 +176,6 @@ combined_plot <- ggstatsplot +
   labs(title = "Dunn's Test results for Group 1 data", 
        x = 'Soil moisture level /% of field capacity', 
        y = 'Mean CFU count /µL') +
-  theme(
-    plot.margin = margin(10, 10, 20, 10)
-  )
+  cowplot::theme_cowplot() + theme_custom
 combined_plot
+
